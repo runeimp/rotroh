@@ -1,5 +1,5 @@
-RotRoh
-======
+RotRoh v0.1.0
+=============
 
 A Go package and command line tool to apply one of several transforms to text input
 
