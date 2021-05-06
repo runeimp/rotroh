@@ -13,7 +13,7 @@ import (
 
 const (
 	appName    = "RotRoh"
-	appVersion = "1.0.0"
+	appVersion = "0.1.0"
 	usage      = `Usage: %s [OPTIONS] STRINGS
 
 OPTIONS:
@@ -23,12 +23,14 @@ OPTIONS:
 var appLabel = fmt.Sprintf("%s v%s", appName, appVersion)
 
 func main() {
-	base64Ptr := flag.Bool("b64", false, "Use Base64 codex")
-	rot13Ptr := flag.Bool("13", false, "Use ROT-13 transform")
-	rot47Ptr := flag.Bool("47", false, "Use ROT-47 transform")
-	rotrohPtr := flag.Bool("rotroh", true, "Use RotRoh codex")
+	base64Ptr := flag.Bool("base64", false, "Use Base64 codex")
 	helpPtr := flag.Bool("help", false, "Display this help info")
-	verPtr := flag.Bool("version", false, "Display version info")
+	pipeModePtr := flag.Bool("pipe", false, "Do not output a newline at the end")
+	rot13Ptr := flag.Bool("rot13", false, "Use ROT-13 transform")
+	rot47Ptr := flag.Bool("rot47", false, "Use ROT-47 transform")
+	rotCustomPtr := flag.String("rot-custom", "", "Use a custom ROT transform set")
+	rotRohPtr := flag.Bool("rotroh", true, "Use RotRoh codex")
+	versionPtr := flag.Bool("version", false, "Display version info")
 
 	noRotRoh := false
 
@@ -38,7 +40,11 @@ func main() {
 
 		flag.VisitAll(func(f *flag.Flag) {
 			optionName := fmt.Sprintf("-%s", f.Name)
-			fmt.Fprintf(flag.CommandLine.Output(), "  %-8s  %s (default: %v)\n", optionName, f.Usage, f.DefValue) //
+			if len(f.DefValue) > 0 {
+				fmt.Fprintf(flag.CommandLine.Output(), "  %-15s  %s (default: %v)\n", optionName, f.Usage, f.DefValue)
+			} else {
+				fmt.Fprintf(flag.CommandLine.Output(), "  %-15s  %s\n", optionName+" SET", f.Usage)
+			}
 		})
 		fmt.Println()
 	}
@@ -50,7 +56,7 @@ func main() {
 		os.Exit(0)
 	}
 
-	if *verPtr {
+	if *versionPtr {
 		fmt.Println(appLabel)
 		os.Exit(0)
 	}
@@ -68,6 +74,7 @@ func main() {
 			fmt.Fprintf(os.Stderr, "You can only use one transform of either ROT-13, ROT-47, Base64, or RotRoh\n")
 			os.Exit(1)
 		}
+		// fmt.Printf("arg: %q\n", arg)
 
 		var err error
 		result := arg
@@ -80,24 +87,29 @@ func main() {
 			// fmt.Println("ROT-13")
 			result = rotroh.Rot13String(result)
 			noRotRoh = true
+		} else if *rotCustomPtr != "" {
+			// fmt.Println("RotCustom")
+			result, err = rotroh.RotCustomString(result, *rotCustomPtr)
+			noRotRoh = true
 		} else if *base64Ptr {
 			// fmt.Println("Base64")
 			result, err = rotroh.Base64String(result)
 			noRotRoh = true
 		}
 
-		if *rotrohPtr && noRotRoh == false {
+		if *rotRohPtr && noRotRoh == false {
 			// fmt.Println("RotRoh")
 			result, err = rotroh.RotRoh47String(result)
 		}
-		// if rotrohPtr == nil {
-		// 	fmt.Println("RotRoh == nil")
-		// }
 
 		if err != nil {
 			fmt.Println(err.Error())
 		}
-		fmt.Println(result)
+		if *pipeModePtr {
+			fmt.Print(result)
+		} else {
+			fmt.Println(result)
+		}
 	}
 }
 
